@@ -18,9 +18,9 @@ class QuizViewSet(viewsets.ViewSet):
         questions = Aquiz.objects.exclude(id__in=answered_questions)  
 
         if not questions.exists():  
-            return Response({'error': 'No more questions available'}, status=status.HTTP_404_NOT_FOUND)  
+            return Response({'error': 'No more questions available'}, status=status.HTTP_404_NOT_FOUND)  # we can change it later , to tell the user that s/he have successed everything.
 
-        random_questions = random.sample(list(questions), min(10, questions.count()))  
+        random_questions = random.sample(list(questions), min(1, questions.count()))  
         serializer = QuizSerializer(random_questions, many=True)  
         return Response(serializer.data)  
 
@@ -61,7 +61,6 @@ class QuizViewSet(viewsets.ViewSet):
             'status': 'Answers submitted',  
             'results': response_data  
         }, status=status.HTTP_201_CREATED)  
-
 class UserViewSet(viewsets.ViewSet):  
     def create(self, request):  
         # User registration  
@@ -83,5 +82,18 @@ class UserViewSet(viewsets.ViewSet):
 
     def logout(self, request):  
         # User logout  
-        request.user.auth_token.delete()  
-        return Response({'status': 'Logged out'}, status=status.HTTP_200_OK)
+        token = request.data.get('token')  # Accepting token from the request body  , bcz, using the header is not possible using DRF testing
+
+        if not token:  
+            return Response({'error': 'No token provided'}, status=status.HTTP_400_BAD_REQUEST)  
+
+        try:  
+            token_obj = Token.objects.get(key=token)  
+            token_obj.delete()  # Delete the token to log the user out  
+            return Response({'status': 'Logged out'}, status=status.HTTP_200_OK)  
+        except Token.DoesNotExist:  
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)  
+#         def logout(self, request):  
+#         # User logout  
+#         request.user.auth_token.delete()  # great for submitting the user token using header
+#         return Response({'status': 'Logged out'}, status=status.HTTP_200_OK)
